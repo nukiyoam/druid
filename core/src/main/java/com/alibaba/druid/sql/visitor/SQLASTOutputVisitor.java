@@ -1289,7 +1289,15 @@ public class SQLASTOutputVisitor extends SQLASTVisitorAdapter implements Paramet
         printExpr(conditionExpr, parameterized);
         this.indentCount--;
 
-        if (lines != this.lines) {
+        boolean println = lines != this.lines;
+        if (isPrettyFormat() && !println) {
+            List<String> afterComments = conditionExpr.getAfterCommentsDirect();
+            if (afterComments != null && !afterComments.isEmpty()) {
+                println = true;
+            }
+        }
+
+        if (println) {
             println();
         } else {
             print(' ');
@@ -2370,6 +2378,13 @@ public class SQLASTOutputVisitor extends SQLASTVisitorAdapter implements Paramet
             this.indentCount++;
             for (int i = 0; i < itemSize; ++i) {
                 SQLExpr item = items.get(i);
+                if (isPrettyFormat() && item.hasBeforeComment()) {
+                    if (i != 0) {
+                        print(' ');
+                    }
+                    printlnComments(item.getBeforeCommentsDirect());
+                }
+
                 if (i != 0) {
                     if (groupItemSingleLine) {
                         println(", ");
@@ -5561,6 +5576,13 @@ public class SQLASTOutputVisitor extends SQLASTVisitorAdapter implements Paramet
         }
 
         printTableSourceExpr(x.getName());
+
+        SQLName on = x.getOn();
+        if (on != null) {
+            print(ucase ? " ON CLUSTER " : " on cluster ");
+            printExpr(on);
+        }
+
         this.indentCount++;
         for (int i = 0; i < x.getItems().size(); ++i) {
             SQLAlterTableItem item = x.getItems().get(i);

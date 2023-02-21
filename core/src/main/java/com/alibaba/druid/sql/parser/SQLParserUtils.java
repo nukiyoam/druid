@@ -127,7 +127,7 @@ public class SQLParserUtils {
                 return new PGSQLStatementParser(sql, features);
             case sqlserver:
             case jtds:
-                return new SQLServerStatementParser(sql);
+                return new SQLServerStatementParser(sql, features);
             case h2:
                 return new H2StatementParser(sql, features);
             case blink:
@@ -546,7 +546,7 @@ public class SQLParserUtils {
                 script = true;
             }
 
-            if (script || lexer.identifierEquals("pai") || lexer.identifierEquals("jar")) {
+            if (script || lexer.identifierEquals("pai") || lexer.identifierEquals("jar") || lexer.identifierEquals("copy")) {
                 return Collections.singletonList(sql);
             }
         }
@@ -559,6 +559,8 @@ public class SQLParserUtils {
 
         boolean set = false, paiOrJar = false;
         int start = 0;
+        Token preToken = null;
+        int prePos = 0;
         Token token = lexer.token;
         for (; lexer.token != Token.EOF; ) {
             if (token == Token.SEMI) {
@@ -608,21 +610,17 @@ public class SQLParserUtils {
                 lexer.nextTokenForSet();
                 token = lexer.token;
                 continue;
-            } else if (dbType == DbType.odps && (lexer.identifierEquals("pai") || lexer.identifierEquals("jar"))) {
-                if (lexer.startPos - start > 0) {
-                    int semiIndex = sql.indexOf(';', lexer.startPos);
-                    if (semiIndex != -1) {
-                        lexer.pos = semiIndex - 1;
-                        lexer.nextToken();
-                        token = lexer.token;
-                        continue;
-                    }
-                    String str = sql.substring(start, lexer.startPos).trim();
-                    if (str.isEmpty()) {
-                        lexer.startPos = sql.length();
-                        paiOrJar = true;
-                        break;
-                    }
+            } else if (dbType == DbType.odps
+                    && (preToken == null || preToken == Token.LINE_COMMENT || preToken == Token.SEMI)
+                    && (lexer.identifierEquals("pai") || lexer.identifierEquals("jar") || lexer.identifierEquals("copy"))) {
+                lexer.scanLineArgument();
+                paiOrJar = true;
+            }
+
+            if (lexer.identifierEquals("USING")) {
+                lexer.nextToken();
+                if (lexer.identifierEquals("jar")) {
+                    lexer.nextToken();
                 }
             }
 
@@ -630,6 +628,7 @@ public class SQLParserUtils {
                 set = true;
             }
 
+            prePos = lexer.pos;
             if (lexer.identifierEquals("ADD") && (dbType == DbType.hive || dbType == DbType.odps)) {
                 lexer.nextToken();
                 if (lexer.identifierEquals("JAR")) {
@@ -638,11 +637,21 @@ public class SQLParserUtils {
             } else {
                 lexer.nextToken();
             }
+            preToken = token;
             token = lexer.token;
+            if (token == Token.LINE_COMMENT
+                    && (preToken == Token.SEMI || preToken == Token.LINE_COMMENT || preToken == Token.MULTI_LINE_COMMENT)
+            ) {
+                start = lexer.pos;
+            }
         }
 
         if (start != sql.length() && token != Token.SEMI) {
-            String splitSql = sql.substring(start, lexer.startPos).trim();
+            int end = lexer.startPos;
+            if (end > sql.length()) {
+                end = sql.length();
+            }
+            String splitSql = sql.substring(start, end).trim();
             if (!paiOrJar) {
                 splitSql = removeComment(splitSql, dbType).trim();
             } else {
@@ -717,6 +726,10 @@ public class SQLParserUtils {
 
         sql = sql.trim();
         if (sql.startsWith("jar")) {
+            return sql;
+        }
+
+        if ((sql.startsWith("pai") || sql.startsWith("PAI")) && sql.indexOf(';') == -1) {
             return sql;
         }
 

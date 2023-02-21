@@ -1868,6 +1868,12 @@ public class SQLStatementParser extends SQLParser {
 
             stmt.setName(this.exprParser.name());
 
+            if (lexer.token == ON && dbType == DbType.clickhouse) {
+                lexer.nextToken();
+                acceptIdentifier("CLUSTER");
+                stmt.setOn(this.exprParser.name());
+            }
+
             for (; ; ) {
                 if (lexer.token == Token.DROP) {
                     parseAlterDrop(stmt);
@@ -2487,6 +2493,9 @@ public class SQLStatementParser extends SQLParser {
         } else if (lexer.token == DEFAULT) {
             SQLConstraint constraint = this.exprParser.parseConstaint();
             SQLAlterTableAddConstraint item = new SQLAlterTableAddConstraint(constraint);
+            stmt.addItem(item);
+        } else if (lexer.token == LITERAL_ALIAS && dbType == DbType.sqlserver) {
+            SQLAlterTableAddColumn item = parseAlterTableAddColumn();
             stmt.addItem(item);
         } else {
             throw new ParserException("TODO " + lexer.info());
@@ -3198,7 +3207,7 @@ public class SQLStatementParser extends SQLParser {
                     break;
                 }
             }
-        } else if (acceptSubQuery && (lexer.token == Token.SELECT || lexer.token == Token.LPAREN)) {
+        } else if (acceptSubQuery && (lexer.token == WITH || lexer.token == Token.SELECT || lexer.token == Token.LPAREN)) {
             SQLSelect select = this.createSQLSelectParser().select();
             insertStatement.setQuery(select);
         } else if (lexer.identifierEquals(FnvHash.Constants.VALUE)) {
@@ -4650,6 +4659,12 @@ public class SQLStatementParser extends SQLParser {
             lexer.nextToken();
         } else if (lexer.token == Token.COLUMN) {
             stmt.setType(SQLCommentStatement.Type.COLUMN);
+            lexer.nextToken();
+        } else if (lexer.token == INDEX) {
+            stmt.setType(SQLCommentStatement.Type.INDEX);
+            lexer.nextToken();
+        } else if (lexer.token == VIEW) {
+            stmt.setType(SQLCommentStatement.Type.VIEW);
             lexer.nextToken();
         }
 

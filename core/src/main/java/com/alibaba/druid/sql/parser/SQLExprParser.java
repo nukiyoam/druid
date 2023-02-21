@@ -749,6 +749,7 @@ public class SQLExprParser extends SQLParser {
             case SHOW:
             case INOUT:
             case OUTER:
+            case QUALIFY:
                 sqlExpr = new SQLIdentifierExpr(lexer.stringVal());
                 lexer.nextToken();
                 break;
@@ -1611,6 +1612,9 @@ public class SQLExprParser extends SQLParser {
             accept(Token.RPAREN);
 
             return groupingSets;
+        } else if (lexer.token == Token.LITERAL_CHARS && expr instanceof SQLIdentifierExpr && ((SQLIdentifierExpr) expr).hashCode64() == FnvHash.Constants.DECIMAL) {
+            expr = new SQLDecimalExpr(lexer.stringVal());
+            lexer.nextToken();
         } else {
             if (lexer.token == Token.LPAREN &&
                     !(expr instanceof SQLIntegerExpr) && !(expr instanceof SQLHexExpr)) {
@@ -5245,7 +5249,7 @@ public class SQLExprParser extends SQLParser {
             }
         } else {
             if (lexer.token == Token.EQ) {
-                if (dbType == DbType.odps) {
+                if (dbType == DbType.odps && (parent instanceof SQLSetStatement || parent == null)) {
                     lexer.nextTokenForSet();
                 } else {
                     lexer.nextToken();

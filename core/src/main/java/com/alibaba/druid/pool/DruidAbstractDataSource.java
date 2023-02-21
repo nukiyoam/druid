@@ -274,6 +274,7 @@ public abstract class DruidAbstractDataSource extends WrapperAdapter implements 
     protected volatile long lastFatalErrorTimeMillis;
     protected volatile String lastFatalErrorSql;
     protected volatile Throwable lastFatalError;
+    protected volatile Throwable keepAliveError;
 
     public DruidAbstractDataSource(boolean lockFair) {
         lock = new ReentrantLock(lockFair);
@@ -1758,15 +1759,8 @@ public abstract class DruidAbstractDataSource extends WrapperAdapter implements 
 
                 physicalConnectProperties.put("oracle.net.CONNECT_TIMEOUT", connectTimeoutStr);
             } else if (driver != null && "org.postgresql.Driver".equals(driver.getClass().getName())) {
-                if (connectTimeoutStr == null) {
-                    connectTimeoutStr = Integer.toString(connectTimeout);
-                }
-                physicalConnectProperties.put("loginTimeout", connectTimeoutStr);
-
-                if (socketTimeoutSr == null) {
-                    socketTimeoutSr = Integer.toString(socketTimeout);
-                }
-                physicalConnectProperties.put("socketTimeout", socketTimeoutSr);
+                physicalConnectProperties.put("loginTimeout", connectTimeout);
+                physicalConnectProperties.put("socketTimeout", socketTimeout);
             }
         }
 
