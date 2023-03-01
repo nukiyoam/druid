@@ -15,15 +15,15 @@
  */
 package com.alibaba.druid.wall;
 
-import com.alibaba.druid.sql.SQLUtils;
-import com.alibaba.druid.wall.spi.WallVisitorUtils;
+import static com.alibaba.druid.util.Utils.getBoolean;
+import static com.alibaba.druid.util.Utils.getInteger;
+import static com.alibaba.druid.wall.spi.WallVisitorUtils.loadResource;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentSkipListSet;
 
-import static com.alibaba.druid.util.Utils.getBoolean;
-import static com.alibaba.druid.util.Utils.getInteger;
-import static com.alibaba.druid.wall.spi.WallVisitorUtils.loadResource;
+import com.alibaba.druid.sql.SQLUtils;
+import com.alibaba.druid.wall.spi.WallVisitorUtils;
 
 public class WallConfig implements WallConfigMBean {
     private boolean noneBaseStatementAllow;
@@ -873,7 +873,7 @@ public class WallConfig implements WallConfigMBean {
             if (propertyValue != null) {
                 String[] items = propertyValue.split(",");
                 for (String item : items) {
-                    addUpdateCheckCoumns(item);
+                    addUpdateCheckColumns(item);
                 }
             }
         }
@@ -891,7 +891,7 @@ public class WallConfig implements WallConfigMBean {
         }
     }
 
-    public void addUpdateCheckCoumns(String columnInfo) {
+    public void addUpdateCheckColumns(String columnInfo) {
         String[] items = columnInfo.split("\\.");
         if (items.length != 2) {
             return;
