@@ -213,39 +213,44 @@ public class SQLParserUtils {
 
         switch (dbType) {
             case oracle:
-                return new OracleLexer(sql);
+                return new OracleLexer(sql, features);
             case mysql:
             case mariadb:
-                return new MySqlLexer(sql);
+                return new MySqlLexer(sql, features);
             case elastic_search: {
-                MySqlLexer lexer = new MySqlLexer(sql);
+                MySqlLexer lexer = new MySqlLexer(sql, features);
                 lexer.dbType = dbType;
                 return lexer;
             }
             case h2:
-                return new H2Lexer(sql);
+                return new H2Lexer(sql, features);
             case postgresql:
             case edb:
-                return new PGLexer(sql);
+                return new PGLexer(sql, features);
             case db2:
-                return new DB2Lexer(sql);
+                return new DB2Lexer(sql, features);
             case odps:
-                return new OdpsLexer(sql);
+                return new OdpsLexer(sql, features);
             case phoenix:
-                return new PhoenixLexer(sql);
+                return new PhoenixLexer(sql, features);
             case presto:
             case trino:
-                return new PrestoLexer(sql);
+                return new PrestoLexer(sql, features);
             case antspark:
                 return new AntsparkLexer(sql);
             case oscar:
-                return new OscarLexer(sql);
+                return new OscarLexer(sql, features);
             case clickhouse:
-                return new ClickhouseLexer(sql);
+                return new ClickhouseLexer(sql, features);
             case sap_hana:
-                return new SAPHanaLexer(sql);
-            default:
-                return new Lexer(sql, null, dbType);
+                return new SAPHanaLexer(sql, features);
+            default: {
+                Lexer lexer = new Lexer(sql, null, dbType);
+                for (SQLParserFeature feature : features) {
+                    lexer.config(feature, true);
+                }
+                return lexer;
+            }
         }
     }
 
@@ -633,7 +638,8 @@ public class SQLParserUtils {
             lexer.config(SQLParserFeature.KeepComments, true);
 
             while (lexer.token != Token.EOF) {
-                if (lexer.token == Token.LINE_COMMENT || lexer.token == Token.MULTI_LINE_COMMENT
+                if (lexer.token == Token.LINE_COMMENT
+                        || lexer.token == Token.MULTI_LINE_COMMENT
                         || lexer.token == Token.SEMI) {
                     containsCommentAndSemi = true;
                     break;
@@ -676,7 +682,10 @@ public class SQLParserUtils {
                 int len = lexer.startPos - start;
                 if (len > 0) {
                     String lineSql = sql.substring(start, lexer.startPos);
-                    String splitSql = set ? removeLeftComment(lineSql, dbType) : removeComment(lineSql, dbType).trim();
+                    String splitSql = set
+                            ? removeLeftComment(lineSql, dbType)
+                            : removeComment(lineSql, dbType
+                    ).trim();
                     if (!splitSql.isEmpty()) {
                         list.add(splitSql);
                     }
@@ -686,7 +695,10 @@ public class SQLParserUtils {
             } else if (token == Token.MULTI_LINE_COMMENT) {
                 int len = lexer.startPos - start;
                 if (len > 0) {
-                    String splitSql = removeComment(sql.substring(start, lexer.startPos), dbType).trim();
+                    String splitSql = removeComment(
+                            sql.substring(start, lexer.startPos),
+                            dbType
+                    ).trim();
                     if (!splitSql.isEmpty()) {
                         list.add(splitSql);
                     }
@@ -960,7 +972,9 @@ public class SQLParserUtils {
                 case FROM:
                 case JOIN:
                     lexer.nextToken();
-                    if (lexer.token != Token.LPAREN && lexer.token != Token.VALUES) {
+                    if (lexer.token != Token.LPAREN
+                            && lexer.token != Token.VALUES
+                    ) {
                         SQLName name = exprParser.name();
                         tables.add(name.toString());
                     }
