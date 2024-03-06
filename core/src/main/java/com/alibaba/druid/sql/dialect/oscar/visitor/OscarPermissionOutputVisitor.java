@@ -23,12 +23,12 @@ import com.alibaba.druid.sql.ast.statement.SQLTableSampling;
 import java.util.List;
 
 public class OscarPermissionOutputVisitor extends OscarOutputVisitor {
-    public OscarPermissionOutputVisitor(Appendable appender) {
+    public OscarPermissionOutputVisitor(StringBuilder appender) {
         super(appender);
         this.dbType = DbType.oscar;
     }
 
-    public OscarPermissionOutputVisitor(Appendable appender, boolean parameterized) {
+    public OscarPermissionOutputVisitor(StringBuilder appender, boolean parameterized) {
         super(appender, parameterized);
         this.dbType = DbType.oscar;
     }

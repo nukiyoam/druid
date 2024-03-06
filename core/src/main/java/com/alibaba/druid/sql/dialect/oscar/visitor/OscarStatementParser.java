@@ -58,30 +58,30 @@ public class OscarStatementParser extends SQLStatementParser {
     public SQLUpdateStatement parseUpdateStatement() {
         accept(Token.UPDATE);
 
-        OscarUpdateStatement udpateStatement = new OscarUpdateStatement();
+        OscarUpdateStatement updateStatement = new OscarUpdateStatement();
 
         SQLSelectParser selectParser = this.exprParser.createSelectParser();
         SQLTableSource tableSource = selectParser.parseTableSource();
-        udpateStatement.setTableSource(tableSource);
+        updateStatement.setTableSource(tableSource);
 
-        parseUpdateSet(udpateStatement);
+        parseUpdateSet(updateStatement);
 
         if (lexer.token() == Token.FROM) {
             lexer.nextToken();
             SQLTableSource from = selectParser.parseTableSource();
-            udpateStatement.setFrom(from);
+            updateStatement.setFrom(from);
         }
 
         if (lexer.token() == (Token.WHERE)) {
             lexer.nextToken();
-            udpateStatement.setWhere(this.exprParser.expr());
+            updateStatement.setWhere(this.exprParser.expr());
         }
 
         if (lexer.token() == Token.RETURNING) {
             lexer.nextToken();
 
-            for (; ; ) {
-                udpateStatement.getReturning().add(this.exprParser.expr());
+            for (;;) {
+                updateStatement.getReturning().add(this.exprParser.expr());
                 if (lexer.token() == Token.COMMA) {
                     lexer.nextToken();
                     continue;
@@ -90,7 +90,7 @@ public class OscarStatementParser extends SQLStatementParser {
             }
         }
 
-        return udpateStatement;
+        return updateStatement;
     }
 
     public OscarInsertStatement parseInsert() {
@@ -129,7 +129,7 @@ public class OscarStatementParser extends SQLStatementParser {
         if (lexer.token() == (Token.VALUES)) {
             lexer.nextToken();
 
-            for (; ; ) {
+            for (;;) {
                 accept(Token.LPAREN);
                 SQLInsertStatement.ValuesClause valuesCaluse = new SQLInsertStatement.ValuesClause();
                 this.exprParser.exprList(valuesCaluse.getValues(), valuesCaluse);
@@ -183,7 +183,7 @@ public class OscarStatementParser extends SQLStatementParser {
                         accept(Token.UPDATE);
                         accept(Token.SET);
 
-                        for (; ; ) {
+                        for (;;) {
                             SQLUpdateSetItem item = this.exprParser.parseUpdateSetItem();
                             stmt.addConflicUpdateItem(item);
 
@@ -639,7 +639,7 @@ public class OscarStatementParser extends SQLStatementParser {
 
         accept(Token.LPAREN);
 
-        for (; ; ) {
+        for (;;) {
             SQLSelectOrderByItem item = this.exprParser.parseSelectOrderByItem();
             item.setParent(stmt);
             stmt.addItem(item);
@@ -655,7 +655,7 @@ public class OscarStatementParser extends SQLStatementParser {
             lexer.nextToken();
             accept(Token.LPAREN);
 
-            for (; ; ) {
+            for (;;) {
                 String optionName = lexer.stringVal();
                 accept(Token.IDENTIFIER);
                 accept(Token.EQ);

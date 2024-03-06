@@ -26,6 +26,7 @@ import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlKillStatement;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.SQLAlterResourceGroupStatement;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.SQLCreateResourceGroupStatement;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.SQLListResourceGroupStatement;
+import com.alibaba.druid.sql.dialect.starrocks.ast.statement.StarRocksCreateResourceStatement;
 
 public interface SQLASTVisitor {
     default void endVisit(SQLAllColumnExpr x) {
@@ -370,6 +371,13 @@ public interface SQLASTVisitor {
     default void endVisit(SQLUpdateStatement x) {
     }
 
+    default boolean visit(SQLGetDiagnosticsStatement x) {
+        return true;
+    }
+
+    default void endVisit(SQLGetDiagnosticsStatement x) {
+    }
+
     default boolean visit(SQLCreateViewStatement x) {
         return true;
     }
@@ -500,6 +508,13 @@ public interface SQLASTVisitor {
     }
 
     default boolean visit(SQLCommentStatement x) {
+        return true;
+    }
+
+    default void endVisit(SQLBeginStatement x) {
+    }
+
+    default boolean visit(SQLBeginStatement x) {
         return true;
     }
 
@@ -1222,6 +1237,12 @@ public interface SQLASTVisitor {
     }
 
     default void endVisit(SQLPartitionByList x) {
+    }
+    default boolean visit(SQLPartitionOf x) {
+        return true;
+    }
+
+    default void endVisit(SQLPartitionOf x) {
     }
 
     default boolean visit(SQLSubPartition x) {
@@ -2478,6 +2499,37 @@ public interface SQLASTVisitor {
     }
 
     default void endVisit(SQLOptimizeStatement x) {
+    }
+
+    default boolean visit(SQLPivot x) {
+        return true;
+    }
+
+    default void endVisit(SQLPivot x) {
+    }
+
+    default boolean visit(SQLUnpivot x) {
+        return true;
+    }
+
+    default void endVisit(SQLUnpivot x) {
+    }
+
+    default void preVisit(StarRocksCreateResourceStatement x) {
+    }
+
+    default boolean visit(StarRocksCreateResourceStatement x) {
+        return true;
+    }
+
+    default void endVisit(StarRocksCreateResourceStatement x) {
+    }
+
+    default boolean visit(SQLCostStatement x) {
+        return true;
+    }
+
+    default void endVisit(SQLCostStatement x) {
     }
 
 }

@@ -70,6 +70,9 @@ import com.alibaba.druid.sql.dialect.saphana.parser.SAPHanaStatementParser;
 import com.alibaba.druid.sql.dialect.sqlserver.ast.SQLServerSelectQueryBlock;
 import com.alibaba.druid.sql.dialect.sqlserver.parser.SQLServerExprParser;
 import com.alibaba.druid.sql.dialect.sqlserver.parser.SQLServerStatementParser;
+import com.alibaba.druid.sql.dialect.starrocks.parser.StarRocksExprParser;
+import com.alibaba.druid.sql.dialect.starrocks.parser.StarRocksLexer;
+import com.alibaba.druid.sql.dialect.starrocks.parser.StarRocksStatementParser;
 import com.alibaba.druid.sql.visitor.SQLASTOutputVisitor;
 import com.alibaba.druid.sql.visitor.VisitorFeature;
 import com.alibaba.druid.util.StringUtils;
@@ -103,6 +106,11 @@ public class SQLParserUtils {
     }
 
     public static SQLStatementParser createSQLStatementParser(String sql, DbType dbType, SQLParserFeature... features) {
+        if (sql.indexOf("\r\n") != -1) {
+            // com.alibaba.druid.sql.parser.Lexer only recognizes Linux newline '\n'.
+            sql = sql.replace("\r\n", "\n");
+        }
+
         if (dbType == null) {
             dbType = DbType.other;
         }
@@ -112,6 +120,7 @@ public class SQLParserUtils {
             case oceanbase_oracle:
                 return new OracleStatementParser(sql, features);
             case mysql:
+            case tidb:
             case mariadb:
             case drds: {
                 return new MySqlStatementParser(sql, features);
@@ -123,6 +132,7 @@ public class SQLParserUtils {
                 return parser;
             }
             case postgresql:
+            case greenplum:
             case edb:
                 return new PGSQLStatementParser(sql, features);
             case sqlserver:
@@ -149,6 +159,8 @@ public class SQLParserUtils {
                 return new AntsparkStatementParser(sql);
             case clickhouse:
                 return new ClickhouseStatementParser(sql);
+            case starrocks:
+                return new StarRocksStatementParser(sql);
             case sap_hana:
                 return new SAPHanaStatementParser(sql);
             default:
@@ -175,6 +187,7 @@ public class SQLParserUtils {
             case h2:
                 return new H2ExprParser(sql, features);
             case postgresql:
+            case greenplum:
             case edb:
                 return new PGExprParser(sql, features);
             case sqlserver:
@@ -195,6 +208,8 @@ public class SQLParserUtils {
                 return new ClickhouseExprParser(sql, features);
             case oscar:
                 return new OscarExprParser(sql, features);
+            case starrocks:
+                return new StarRocksExprParser(sql, features);
             case sap_hana:
                 return new SAPHanaExprParser(sql, features);
             default:
@@ -225,6 +240,7 @@ public class SQLParserUtils {
             case h2:
                 return new H2Lexer(sql, features);
             case postgresql:
+            case greenplum:
             case edb:
                 return new PGLexer(sql, features);
             case db2:
@@ -242,6 +258,8 @@ public class SQLParserUtils {
                 return new OscarLexer(sql, features);
             case clickhouse:
                 return new ClickhouseLexer(sql, features);
+            case starrocks:
+                return new StarRocksLexer(sql, features);
             case sap_hana:
                 return new SAPHanaLexer(sql, features);
             default: {
@@ -267,6 +285,8 @@ public class SQLParserUtils {
             case db2:
                 return new DB2SelectQueryBlock();
             case postgresql:
+            case greenplum:
+            case edb:
                 return new PGSelectQueryBlock();
             case odps:
                 return new OdpsSelectQueryBlock();
@@ -492,7 +512,7 @@ public class SQLParserUtils {
             return sql;
         }
         SQLStatementParser parser = createSQLStatementParser(sql, dbType);
-        StringBuffer buf = new StringBuffer(sql.length() + 20);
+        StringBuilder buf = new StringBuilder(sql.length() + 20);
         SQLASTOutputVisitor out = SQLUtils.createOutputVisitor(buf, DbType.mysql);
         out.config(VisitorFeature.OutputNameQuote, true);
 
@@ -671,13 +691,22 @@ public class SQLParserUtils {
         Lexer lexer = createLexer(sql, dbType);
         lexer.config(SQLParserFeature.SkipComments, false);
         lexer.config(SQLParserFeature.KeepComments, true);
+        lexer.nextToken();
 
         boolean set = false, paiOrJar = false;
         int start = 0;
         Token preToken = null;
         int prePos = 0;
         Token token = lexer.token;
-        for (; lexer.token != Token.EOF; ) {
+        Token startToken = lexer.token;
+        while (token == Token.LINE_COMMENT || token == Token.MULTI_LINE_COMMENT) {
+            lexer.nextToken();
+            token = lexer.token;
+            startToken = token;
+            start = lexer.startPos;
+        }
+
+        for (int tokens = 0; lexer.token != Token.EOF; ) {
             if (token == Token.SEMI) {
                 int len = lexer.startPos - start;
                 if (len > 0) {
@@ -690,8 +719,13 @@ public class SQLParserUtils {
                         list.add(splitSql);
                     }
                 }
-                start = lexer.startPos + 1;
+                lexer.nextToken();
+                token = lexer.token;
+                start = lexer.startPos;
+                startToken = token;
                 set = false;
+                tokens = 0;
+                continue;
             } else if (token == Token.MULTI_LINE_COMMENT) {
                 int len = lexer.startPos - start;
                 if (len > 0) {
@@ -706,6 +740,8 @@ public class SQLParserUtils {
                 lexer.nextToken();
                 token = lexer.token;
                 start = lexer.startPos;
+                startToken = token;
+                tokens = 0;
                 continue;
             } else if (token == Token.CREATE) {
                 lexer.nextToken();
@@ -761,9 +797,13 @@ public class SQLParserUtils {
             preToken = token;
             token = lexer.token;
             if (token == Token.LINE_COMMENT
-                    && (preToken == Token.SEMI || preToken == Token.LINE_COMMENT || preToken == Token.MULTI_LINE_COMMENT)
-            ) {
+                    && tokens == 0) {
                 start = lexer.pos;
+                startToken = token;
+            }
+
+            if (token != Token.LINE_COMMENT && token != Token.MULTI_LINE_COMMENT && token != Token.SEMI) {
+                tokens++;
             }
         }
 
@@ -888,6 +928,11 @@ public class SQLParserUtils {
                     sb.append(sql.substring(start, lexer.startPos));
                 }
                 start = lexer.startPos + lexer.stringVal().length();
+                if (lexer.startPos > 1 && lexer.text.charAt(lexer.startPos - 1) == '\n') {
+                    while (start + 1 < lexer.text.length() && lexer.text.charAt(start) == '\n') {
+                        start = start + 1;
+                    }
+                }
             } else if (token == Token.MULTI_LINE_COMMENT) {
                 int len = lexer.startPos - start;
                 if (len > 0) {

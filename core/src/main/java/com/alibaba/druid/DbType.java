@@ -3,11 +3,7 @@ package com.alibaba.druid;
 import com.alibaba.druid.util.FnvHash;
 
 public enum DbType {
-    /**
-     *
-     */
     other(1 << 0),
-
     jtds(1 << 1),
     hsql(1 << 2),
     db2(1 << 3),
@@ -21,11 +17,7 @@ public enum DbType {
 
     hive(1 << 10),
     h2(1 << 11),
-
-    /**
-     * dm.jdbc.driver.DmDriver
-     */
-    dm(1 << 12),
+    dm(1 << 12), // dm.jdbc.driver.DmDriver
     kingbase(1 << 13),
     gbase(1 << 14),
 
@@ -36,19 +28,12 @@ public enum DbType {
     phoenix(1 << 19),
 
     edb(1 << 20),
-
-    /**
-     * org.apache.kylin.jdbc.Driver
-     */
-    kylin(1 << 21),
+    kylin(1 << 21), // org.apache.kylin.jdbc.Driver
     sqlite(1 << 22),
     ads(1 << 23),
     presto(1 << 24),
 
-    /**
-     * com.alibaba.xdriver.elastic.jdbc.ElasticDriver
-     */
-    elastic_search(1 << 25),
+    elastic_search(1 << 25), // com.alibaba.xdriver.elastic.jdbc.ElasticDriver
     hbase(1 << 26),
     drds(1 << 27),
 
@@ -79,12 +64,14 @@ public enum DbType {
 
     tydb(1L << 42),
 
+    starrocks(1L << 43),
+
     /**
      * sap hana 数据库
      * <p>
      * com.sap.db.jdbc.Driver
      */
-    sap_hana(1L << 43),
+    sap_hana(1L << 44),
 
     ingres(0),
     cloudscape(0),
@@ -100,7 +87,8 @@ public enum DbType {
     interbase(0),
     pointbase(0),
     edbc(0),
-    mimer(0);
+    mimer(0),
+    taosdata(0);
 
     public final long mask;
     public final long hashCode64;

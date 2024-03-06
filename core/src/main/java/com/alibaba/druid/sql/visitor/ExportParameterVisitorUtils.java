@@ -35,7 +35,7 @@ public final class ExportParameterVisitorUtils {
         super();
     }
 
-    public static ExportParameterVisitor createExportParameterVisitor(Appendable out, DbType dbType) {
+    public static ExportParameterVisitor createExportParameterVisitor(StringBuilder out, DbType dbType) {
         if (dbType == null) {
             dbType = DbType.other;
         }
@@ -55,6 +55,7 @@ public final class ExportParameterVisitorUtils {
             case jtds:
                 return new MSSQLServerExportParameterVisitor(out);
             case postgresql:
+            case greenplum:
             case edb:
                 return new PGExportParameterVisitor(out);
             case sap_hana:
