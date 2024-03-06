@@ -38,7 +38,7 @@ public class SAPHanaExportParameterVisitor extends SAPHanaOutputVisitor implemen
     private final boolean requireParameterizedOutput;
 
     public SAPHanaExportParameterVisitor(final List<Object> parameters,
-                                         final Appendable appender,
+                                         final StringBuilder appender,
                                          final boolean wantParameterizedOutput) {
         super(appender, true);
         this.parameters = parameters;
@@ -46,15 +46,15 @@ public class SAPHanaExportParameterVisitor extends SAPHanaOutputVisitor implemen
     }
 
     public SAPHanaExportParameterVisitor() {
-        this(new ArrayList<Object>());
+        this(new ArrayList<>());
     }
 
     public SAPHanaExportParameterVisitor(final List<Object> parameters) {
         this(parameters, new StringBuilder(), false);
     }
 
-    public SAPHanaExportParameterVisitor(final Appendable appender) {
-        this(new ArrayList<Object>(), appender, true);
+    public SAPHanaExportParameterVisitor(final StringBuilder appender) {
+        this(new ArrayList<>(), appender, true);
     }
 
     public List<Object> getParameters() {

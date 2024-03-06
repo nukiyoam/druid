@@ -15,15 +15,15 @@
  */
 package com.alibaba.druid.wall;
 
-import static com.alibaba.druid.util.Utils.getBoolean;
-import static com.alibaba.druid.util.Utils.getInteger;
-import static com.alibaba.druid.wall.spi.WallVisitorUtils.loadResource;
+import com.alibaba.druid.sql.SQLUtils;
+import com.alibaba.druid.wall.spi.WallVisitorUtils;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentSkipListSet;
 
-import com.alibaba.druid.sql.SQLUtils;
-import com.alibaba.druid.wall.spi.WallVisitorUtils;
+import static com.alibaba.druid.util.Utils.getBoolean;
+import static com.alibaba.druid.util.Utils.getInteger;
+import static com.alibaba.druid.wall.spi.WallVisitorUtils.loadResource;
 
 public class WallConfig implements WallConfigMBean {
     private boolean noneBaseStatementAllow;

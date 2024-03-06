@@ -30,11 +30,11 @@ import com.alibaba.druid.sql.visitor.SQLASTOutputVisitor;
  * @author nukiyoam
  */
 public class SAPHanaOutputVisitor extends SQLASTOutputVisitor implements SAPHanaASTVisitor {
-    public SAPHanaOutputVisitor(Appendable appender) {
+    public SAPHanaOutputVisitor(StringBuilder appender) {
         super(appender, DbType.sap_hana);
     }
 
-    public SAPHanaOutputVisitor(Appendable appender, boolean parameterized) {
+    public SAPHanaOutputVisitor(StringBuilder appender, boolean parameterized) {
         super(appender, parameterized);
         this.dbType = DbType.sap_hana;
     }
