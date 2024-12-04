@@ -186,7 +186,10 @@ public class MySqlOutputVisitor extends SQLASTOutputVisitor implements MySqlASTV
         if (from != null) {
             println();
             print0(ucase ? "FROM " : "from ");
-
+            if (x.getCommentsAfaterFrom() != null) {
+                printAfterComments(x.getCommentsAfaterFrom());
+                println();
+            }
             printTableSource(from);
         }
 
@@ -281,7 +284,7 @@ public class MySqlOutputVisitor extends SQLASTOutputVisitor implements MySqlASTV
             dataType.accept(this);
         }
 
-        SQLExpr generatedAlawsAs = x.getGeneratedAlawsAs();
+        SQLExpr generatedAlawsAs = x.getGeneratedAlwaysAs();
         if (generatedAlawsAs != null) {
             print0(ucase ? " GENERATED ALWAYS AS (" : " generated always as (");
             printExpr(generatedAlawsAs);
@@ -2012,6 +2015,11 @@ public class MySqlOutputVisitor extends SQLASTOutputVisitor implements MySqlASTV
                 print0(ucase ? "PASSWORD " : "password ");
             }
             x.getPassword().accept(this);
+        } else {
+            if (x.isRandomPassword()) {
+                print0(ucase ? " IDENTIFIED BY " : " identified by ");
+                print0(ucase ? "RANDOM PASSWORD " : "random password ");
+            }
         }
         return false;
     }
@@ -3469,6 +3477,35 @@ public class MySqlOutputVisitor extends SQLASTOutputVisitor implements MySqlASTV
         print0(ucase ? "TABLE " : "table ");
 
         printTableSourceExpr(x.getName());
+
+        this.indentCount++;
+        if (x.getTableOptions().size() > 0) {
+            println();
+        }
+        this.indentCount--;
+        {
+            int i = 0;
+            for (SQLAssignItem item : x.getTableOptions()) {
+                SQLExpr key = item.getTarget();
+                if (i != 0) {
+                    print(' ');
+                }
+                final String keyStringCase = ucase ? key.toString().toUpperCase() : key.toString().toLowerCase();
+                print0(keyStringCase);
+                if ("TABLESPACE".equalsIgnoreCase(keyStringCase)) {
+                    print(' ');
+                } else {
+                    print0(" = ");
+                }
+                item.getValue().accept(this);
+                i++;
+            }
+        }
+        if (x.getItems().size() > 0) {
+            if (x.getTableOptions().size() > 0) {
+                print(',');
+            }
+        }
         this.indentCount++;
         for (int i = 0; i < x.getItems().size(); ++i) {
             SQLAlterTableItem item = x.getItems().get(i);
@@ -3488,34 +3525,8 @@ public class MySqlOutputVisitor extends SQLASTOutputVisitor implements MySqlASTV
             println();
             print0(ucase ? "UPGRADE PARTITIONING" : "upgrade partitioning");
         }
-
-        if (x.getTableOptions().size() > 0) {
-            if (x.getItems().size() > 0) {
-                print(',');
-            }
-            println();
-        }
-
         this.indentCount--;
-
-        int i = 0;
-        for (SQLAssignItem item : x.getTableOptions()) {
-            SQLExpr key = item.getTarget();
-            if (i != 0) {
-                print(' ');
-            }
-            final String keyStringCase = ucase ? key.toString().toUpperCase() : key.toString().toLowerCase();
-            print0(keyStringCase);
-            if ("TABLESPACE".equalsIgnoreCase(keyStringCase)) {
-                print(' ');
-            } else {
-                print0(" = ");
-            }
-            item.getValue().accept(this);
-            i++;
-        }
-
-        SQLPartitionBy partitionBy = x.getPartition();
+       SQLPartitionBy partitionBy = x.getPartition();
         if (partitionBy != null) {
             println();
             print0(ucase ? "PARTITION BY " : "partition by ");
@@ -3990,16 +4001,20 @@ public class MySqlOutputVisitor extends SQLASTOutputVisitor implements MySqlASTV
         return false;
     }
 
-    protected void visitAggreateRest(SQLAggregateExpr aggregateExpr) {
+    protected void visitAggreateRest(SQLAggregateExpr x) {
+        boolean withGroup = x.isWithinGroup();
+        if (withGroup) {
+            print0(ucase ? ") WITHIN GROUP (" : ") within group (");
+        }
         {
-            SQLOrderBy value = aggregateExpr.getOrderBy();
+            SQLOrderBy value = x.getOrderBy();
             if (value != null) {
                 print(' ');
                 ((SQLObject) value).accept(this);
             }
         }
         {
-            Object value = aggregateExpr.getAttribute("SEPARATOR");
+            Object value = x.getAttribute("SEPARATOR");
             if (value != null) {
                 print0(ucase ? " SEPARATOR " : " separator ");
                 ((SQLObject) value).accept(this);
@@ -4157,6 +4172,9 @@ public class MySqlOutputVisitor extends SQLASTOutputVisitor implements MySqlASTV
         if (printSet) {
             print0(ucase ? "SET " : "set ");
         }
+        if (x.getMaridbSetForStatement() != null) {
+            print0(ucase ? "STATEMENT " : "statement ");
+        }
         SQLSetStatement.Option option = x.getOption();
         if (option != null) {
             print(option.name());
@@ -4169,6 +4187,10 @@ public class MySqlOutputVisitor extends SQLASTOutputVisitor implements MySqlASTV
 
         printAndAccept(x.getItems(), ", ");
 
+        if (x.getMaridbSetForStatement() != null) {
+            print0(ucase ? " FOR " : " for ");
+            x.getMaridbSetForStatement().accept(this);
+        }
         if (x.getHints() != null && x.getHints().size() > 0) {
             print(' ');
             printAndAccept(x.getHints(), " ");
@@ -4509,6 +4531,9 @@ public class MySqlOutputVisitor extends SQLASTOutputVisitor implements MySqlASTV
             x.getDefaultExpr().accept(this);
         } else if (x.isDropDefault()) {
             print0(ucase ? " DROP DEFAULT" : " drop default");
+        } else if (x.getVisibleType() != null) {
+            print0(ucase ? " SET " : " set ");
+            print0(ucase ? x.getVisibleType().toUpperCase() : x.getVisibleType().toLowerCase());
         }
         return false;
     }

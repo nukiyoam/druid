@@ -99,6 +99,9 @@ public class OracleOutputVisitor extends SQLASTOutputVisitor implements OracleAS
         if (x.isWindowingPreceding()) {
             print0(ucase ? " PRECEDING" : " preceding");
         }
+        if (x.isWindowingBetweenEndFollowing()) {
+            print0(ucase ? " FOLLOWING" : " following");
+        }
 
         print(')');
 
@@ -169,15 +172,11 @@ public class OracleOutputVisitor extends SQLASTOutputVisitor implements OracleAS
 
     public boolean visit(OracleIntervalExpr x) {
         SQLExpr value = x.getValue();
-        if (value instanceof SQLLiteralExpr || value instanceof SQLVariantRefExpr) {
+        if (x.getValue() instanceof SQLLiteralExpr || x.getValue() instanceof SQLVariantRefExpr) {
             print0(ucase ? "INTERVAL " : "interval ");
-            value.accept(this);
-            print(' ');
-        } else {
-            print('(');
-            value.accept(this);
-            print0(") ");
         }
+        x.getValue().accept(this);
+        print(' ');
 
         print0(x.getType().name());
 
@@ -288,6 +287,10 @@ public class OracleOutputVisitor extends SQLASTOutputVisitor implements OracleAS
                 x.getCondition().accept(this);
                 decrementIndent();
                 print(' ');
+                if (x.getAfterCommentsDirect() != null) {
+                    printAfterComments(x.getAfterCommentsDirect());
+                    println();
+                }
             }
 
             if (x.getUsing().size() > 0) {
@@ -343,7 +346,9 @@ public class OracleOutputVisitor extends SQLASTOutputVisitor implements OracleAS
         if (isPrettyFormat() && x.hasBeforeComment()) {
             printlnComments(x.getBeforeCommentsDirect());
         }
-
+        if (x.isParenthesized()) {
+            print('(');
+        }
         print0(ucase ? "SELECT " : "select ");
 
         if (x.getHintsSize() > 0) {
@@ -369,6 +374,10 @@ public class OracleOutputVisitor extends SQLASTOutputVisitor implements OracleAS
 
         println();
         print0(ucase ? "FROM " : "from ");
+        if (x.getCommentsAfaterFrom() != null) {
+            printAfterComments(x.getCommentsAfaterFrom());
+            println();
+        }
         if (x.getFrom() == null) {
             print0(ucase ? "DUAL" : "dual");
         } else {
@@ -417,6 +426,9 @@ public class OracleOutputVisitor extends SQLASTOutputVisitor implements OracleAS
             }
         }
 
+        if (x.isParenthesized()) {
+            print(')');
+        }
         return false;
     }
 
@@ -499,7 +511,10 @@ public class OracleOutputVisitor extends SQLASTOutputVisitor implements OracleAS
             print(' ');
             x.getSampleClause().accept(this);
         }
-
+        if (x.getAfterCommentsDirect() != null) {
+            printAfterComments(x.getAfterCommentsDirect());
+            println();
+        }
         if (x.getPivot() != null) {
             println();
             x.getPivot().accept(this);

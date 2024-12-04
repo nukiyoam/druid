@@ -37,6 +37,7 @@ import com.alibaba.druid.sql.dialect.h2.parser.H2ExprParser;
 import com.alibaba.druid.sql.dialect.h2.parser.H2Lexer;
 import com.alibaba.druid.sql.dialect.h2.parser.H2StatementParser;
 import com.alibaba.druid.sql.dialect.hive.parser.HiveExprParser;
+import com.alibaba.druid.sql.dialect.hive.parser.HiveLexer;
 import com.alibaba.druid.sql.dialect.hive.parser.HiveStatementParser;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlSelectQueryBlock;
 import com.alibaba.druid.sql.dialect.mysql.parser.MySqlExprParser;
@@ -122,6 +123,8 @@ public class SQLParserUtils {
             case mysql:
             case tidb:
             case mariadb:
+            case goldendb:
+            case oceanbase:
             case drds: {
                 return new MySqlStatementParser(sql, features);
             }
@@ -134,6 +137,7 @@ public class SQLParserUtils {
             case postgresql:
             case greenplum:
             case edb:
+            case gaussdb:
                 return new PGSQLStatementParser(sql, features);
             case sqlserver:
             case jtds:
@@ -148,6 +152,7 @@ public class SQLParserUtils {
                 return new OdpsStatementParser(sql, features);
             case phoenix:
                 return new PhoenixStatementParser(sql);
+            case spark:
             case hive:
                 return new HiveStatementParser(sql, features);
             case presto:
@@ -189,6 +194,8 @@ public class SQLParserUtils {
             case postgresql:
             case greenplum:
             case edb:
+            case gaussdb:
+            case hologres:
                 return new PGExprParser(sql, features);
             case sqlserver:
             case jtds:
@@ -202,6 +209,7 @@ public class SQLParserUtils {
             case presto:
             case trino:
                 return new PrestoExprParser(sql, features);
+            case spark:
             case hive:
                 return new HiveExprParser(sql, features);
             case clickhouse:
@@ -242,6 +250,7 @@ public class SQLParserUtils {
             case postgresql:
             case greenplum:
             case edb:
+            case hologres:
                 return new PGLexer(sql, features);
             case db2:
                 return new DB2Lexer(sql, features);
@@ -260,6 +269,9 @@ public class SQLParserUtils {
                 return new ClickhouseLexer(sql, features);
             case starrocks:
                 return new StarRocksLexer(sql, features);
+            case hive:
+            case spark:
+                return new HiveLexer(sql, features);
             case sap_hana:
                 return new SAPHanaLexer(sql, features);
             default: {
@@ -287,6 +299,7 @@ public class SQLParserUtils {
             case postgresql:
             case greenplum:
             case edb:
+            case hologres:
                 return new PGSelectQueryBlock();
             case odps:
                 return new OdpsSelectQueryBlock();
@@ -706,7 +719,7 @@ public class SQLParserUtils {
             start = lexer.startPos;
         }
 
-        for (int tokens = 0; lexer.token != Token.EOF; ) {
+        for (int tokens = 1; lexer.token != Token.EOF; ) {
             if (token == Token.SEMI) {
                 int len = lexer.startPos - start;
                 if (len > 0) {
@@ -724,7 +737,7 @@ public class SQLParserUtils {
                 start = lexer.startPos;
                 startToken = token;
                 set = false;
-                tokens = 0;
+                tokens = token == Token.LINE_COMMENT || token == Token.MULTI_LINE_COMMENT ? 0 : 1;
                 continue;
             } else if (token == Token.MULTI_LINE_COMMENT) {
                 int len = lexer.startPos - start;
@@ -741,7 +754,7 @@ public class SQLParserUtils {
                 token = lexer.token;
                 start = lexer.startPos;
                 startToken = token;
-                tokens = 0;
+                tokens = token == Token.LINE_COMMENT || token == Token.MULTI_LINE_COMMENT ? 0 : 1;
                 continue;
             } else if (token == Token.CREATE) {
                 lexer.nextToken();
@@ -886,7 +899,7 @@ public class SQLParserUtils {
         }
 
         sql = sql.trim();
-        if (sql.startsWith("jar")) {
+        if (sql.startsWith("jar") || sql.startsWith("JAR")) {
             return sql;
         }
 

@@ -66,12 +66,22 @@ public enum DbType {
 
     starrocks(1L << 43),
 
+    goldendb(1L << 44),
+
+    snowflake(1L << 45),
+
+    redshift(1L << 46),
+
+    spark(1L << 47),
+
+    hologres(1L << 48),
+
     /**
      * sap hana 数据库
      * <p>
      * com.sap.db.jdbc.Driver
      */
-    sap_hana(1L << 44),
+    sap_hana(1L << 49),
 
     ingres(0),
     cloudscape(0),
@@ -117,6 +127,10 @@ public enum DbType {
             return ads;
         }
 
+        if ("maxcompute".equalsIgnoreCase(name)) {
+            return odps;
+        }
+
         try {
             return valueOf(name);
         } catch (Exception e) {
@@ -124,6 +138,9 @@ public enum DbType {
         }
     }
 
+    public static boolean isPostgreSQLDbStyle(DbType dbType) {
+        return dbType == DbType.postgresql || dbType == DbType.edb || dbType == DbType.greenplum;
+    }
     public final boolean equals(String other) {
         return this == of(other);
     }

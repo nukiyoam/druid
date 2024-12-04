@@ -17,6 +17,7 @@ package com.alibaba.druid.sql.dialect.postgresql.parser;
 
 import com.alibaba.druid.DbType;
 import com.alibaba.druid.sql.ast.SQLArrayDataType;
+import com.alibaba.druid.sql.ast.SQLCurrentTimeExpr;
 import com.alibaba.druid.sql.ast.SQLDataType;
 import com.alibaba.druid.sql.ast.SQLExpr;
 import com.alibaba.druid.sql.ast.expr.*;
@@ -35,7 +36,11 @@ public class PGExprParser extends SQLExprParser {
     public static final long[] AGGREGATE_FUNCTIONS_CODES;
 
     static {
-        String[] strings = {"AVG", "COUNT", "MAX", "MIN", "STDDEV", "SUM", "ROW_NUMBER", "PERCENTILE_CONT", "PERCENTILE_DISC", "RANK", "DENSE_RANK", "PERCENT_RANK", "CUME_DIST"};
+        String[] strings = {
+                "AVG", "COUNT", "MAX", "MIN", "STDDEV",
+                "SUM", "ROW_NUMBER", "PERCENTILE_CONT", "PERCENTILE_DISC", "RANK",
+                "DENSE_RANK", "PERCENT_RANK", "CUME_DIST"
+        };
 
         AGGREGATE_FUNCTIONS_CODES = FnvHash.fnv1a_64_lower(strings, true);
         AGGREGATE_FUNCTIONS = new String[AGGREGATE_FUNCTIONS_CODES.length];
@@ -140,6 +145,18 @@ public class PGExprParser extends SQLExprParser {
                 break;
             }
             return values;
+        } else if (lexer.identifierEquals(FnvHash.Constants.CURRENT_TIMESTAMP)) {
+            SQLCurrentTimeExpr currentTimeExpr = new SQLCurrentTimeExpr(SQLCurrentTimeExpr.Type.CURRENT_TIMESTAMP);
+            lexer.nextToken();
+            if (lexer.identifierEquals(FnvHash.Constants.AT)) {
+                lexer.nextToken();
+                acceptIdentifier("time");
+                acceptIdentifier("zone");
+                String timeZone = lexer.stringVal();
+                lexer.nextToken();
+                currentTimeExpr.setTimeZone(timeZone);
+            }
+            return primaryRest(currentTimeExpr);
         } else if (lexer.token() == Token.WITH) {
             SQLQueryExpr queryExpr = new SQLQueryExpr(
                     createSelectParser()

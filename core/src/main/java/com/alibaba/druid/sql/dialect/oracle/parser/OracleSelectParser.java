@@ -249,6 +249,7 @@ public class OracleSelectParser extends SQLSelectParser {
 
             SQLSelectQuery select = query();
             accept(Token.RPAREN);
+            select.setParenthesized(true);
 
             return queryRest(select, acceptUnion);
         }
@@ -636,6 +637,7 @@ public class OracleSelectParser extends SQLSelectParser {
 
             if ((lexer.token() == Token.UNION || lexer.token() == Token.MINUS || lexer.token() == Token.EXCEPT)
                     && tableSource instanceof OracleSelectSubqueryTableSource) {
+                ((OracleSelectSubqueryTableSource) tableSource).getSelect().getQueryBlock().setParenthesized(true);
                 OracleSelectSubqueryTableSource selectSubqueryTableSource = (OracleSelectSubqueryTableSource) tableSource;
                 SQLSelect select = selectSubqueryTableSource.getSelect();
                 SQLSelectQuery selectQuery = this.queryRest(select.getQuery(), true);
@@ -892,8 +894,12 @@ public class OracleSelectParser extends SQLSelectParser {
 
             SQLTableSource right;
             right = parseTableSourcePrimary();
-            String tableAlias = tableAlias();
-            right.setAlias(tableAlias);
+            // Alias is already set for "... JOIN (tbl1 alias1) ON ..." syntax,
+            // so skip setting alias
+            if (right.getAlias() == null) {
+                String tableAlias = tableAlias();
+                right.setAlias(tableAlias);
+            }
             join.setRight(right);
 
             if (lexer.token() == Token.ON) {
@@ -913,7 +919,9 @@ public class OracleSelectParser extends SQLSelectParser {
                 this.exprParser.exprList(join.getUsing(), join);
                 accept(Token.RPAREN);
             }
-
+            if (lexer.hasComment() && lexer.isKeepComments()) {
+                join.addAfterComment(lexer.readAndResetComments());
+            }
             parsePivot(join);
 
             return parseTableSourceRest(join);

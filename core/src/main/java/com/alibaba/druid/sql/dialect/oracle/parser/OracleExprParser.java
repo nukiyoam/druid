@@ -121,8 +121,7 @@ public class OracleExprParser extends SQLExprParser {
                 || hash == FnvHash.Constants.VARCHAR
                 || hash == FnvHash.Constants.VARCHAR2
                 || hash == FnvHash.Constants.NVARCHAR
-                || hash == FnvHash.Constants.NVARCHAR2
-                || hash == FnvHash.Constants.CHARACTER;
+                || hash == FnvHash.Constants.NVARCHAR2;
     }
 
     public SQLDataType parseDataType(boolean restrict) {
@@ -422,9 +421,12 @@ public class OracleExprParser extends SQLExprParser {
                         sqlExpr = new OracleBinaryDoubleExpr(Double.parseDouble(lexer.numberString()) * -1);
                         lexer.nextToken();
                         break;
+                    case IDENTIFIER:
+                        sqlExpr = primary();
+                        sqlExpr = new SQLUnaryExpr(SQLUnaryOperator.Negative, sqlExpr);
+                        break;
                     case VARIANT:
                     case QUES:
-                    case IDENTIFIER:
                     case LITERAL_ALIAS:
                         sqlExpr = expr();
                         sqlExpr = new SQLUnaryExpr(SQLUnaryOperator.Negative, sqlExpr);
@@ -915,9 +917,9 @@ public class OracleExprParser extends SQLExprParser {
                             endExpr = new SQLIdentifierExpr("CURRENT ROW");
                         } else if (lexer.identifierEquals(FnvHash.Constants.UNBOUNDED)) {
                             lexer.nextToken();
-                            if (lexer.stringVal().equalsIgnoreCase("PRECEDING")) {
+                            if (lexer.stringVal().equalsIgnoreCase("FOLLOWING")) {
                                 lexer.nextToken();
-                                endExpr = new SQLIdentifierExpr("UNBOUNDED PRECEDING");
+                                endExpr = new SQLIdentifierExpr("UNBOUNDED FOLLOWING");
                             } else {
                                 throw new ParserException("syntax error. " + lexer.info());
                             }
@@ -925,6 +927,10 @@ public class OracleExprParser extends SQLExprParser {
                             endExpr = relational();
                         }
 
+                        final SQLOver.WindowingBound endBound = parseWindowingBound();
+                        if (endBound != null) {
+                            over.setWindowingBetweenEndBound(endBound);
+                        }
                         SQLExpr expr = new SQLBetweenExpr(null, beginExpr, endExpr);
                         windowing.setExpr(expr);
                     } else {
@@ -1264,9 +1270,18 @@ public class OracleExprParser extends SQLExprParser {
             }
 
             accept(Token.AS);
-            SQLExpr expr = this.expr();
 
-            column.setGeneratedAlawsAs(expr);
+            if (lexer.token() == Token.NULL || lexer.token() == Token.DEFAULT || lexer.token() == Token.LPAREN) {
+                SQLExpr expr = this.expr();
+
+                column.setGeneratedAlawsAs(expr);
+            }
+
+            if (lexer.identifierEquals(FnvHash.Constants.IDENTITY)) {
+                lexer.nextToken();
+                column.setIdentity(
+                        parseIdentity());
+            }
         }
 
         for (; ; ) {
@@ -1300,6 +1315,33 @@ public class OracleExprParser extends SQLExprParser {
         }
 
         return column;
+    }
+
+    protected SQLColumnDefinition.Identity parseIdentity() {
+        accept(Token.LPAREN);
+        SQLColumnDefinition.Identity ident = new SQLColumnDefinition.Identity();
+        accept(Token.START);
+        accept(Token.WITH);
+
+        if (lexer.token() == Token.LITERAL_INT) {
+            ident.setSeed(lexer.integerValue().intValue());
+            lexer.nextToken();
+        } else {
+            throw new ParserException("TODO : " + lexer.info());
+        }
+
+        if (lexer.token() == Token.COMMA) {
+            lexer.nextToken();
+            if (lexer.token() == Token.LITERAL_INT) {
+                ident.setIncrement(lexer.integerValue().intValue());
+                lexer.nextToken();
+            } else {
+                throw new ParserException("TODO : " + lexer.info());
+            }
+        }
+
+        accept(Token.RPAREN);
+        return ident;
     }
 
     public SQLExpr exprRest(SQLExpr expr) {

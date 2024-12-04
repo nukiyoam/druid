@@ -686,7 +686,7 @@ public class OracleStatementParser extends SQLStatementParser {
             }
 
             if (lexer.token() == Token.ELSIF
-                    && parent instanceof SQLIfStatement) {
+                    && (parent instanceof SQLIfStatement || parent instanceof SQLIfStatement.ElseIf)) {
                 break;
             }
 
@@ -1165,7 +1165,7 @@ public class OracleStatementParser extends SQLStatementParser {
             elseIf.setParent(stmt);
 
             accept(Token.THEN);
-            this.parseStatementList(elseIf.getStatements(), -1, stmt);
+            this.parseStatementList(elseIf.getStatements(), -1, elseIf);
 
             stmt.getElseIfList().add(elseIf);
         }
@@ -1746,6 +1746,11 @@ public class OracleStatementParser extends SQLStatementParser {
         } else if (lexer.token() == Token.COLUMN) {
             lexer.nextToken();
             SQLAlterTableDropColumnItem item = new SQLAlterTableDropColumnItem();
+            if (lexer.token() == Token.IF) {
+                lexer.nextToken();
+                accept(Token.EXISTS);
+                item.setIfExists(true);
+            }
             this.exprParser.names(item.getColumns());
             stmt.addItem(item);
         } else if (lexer.token() == Token.PARTITION) {
@@ -1960,7 +1965,7 @@ public class OracleStatementParser extends SQLStatementParser {
         return block;
     }
 
-    private void parserParameters(List<SQLParameter> parameters, SQLObject parent) {
+    protected void parserParameters(List<SQLParameter> parameters, SQLObject parent) {
         for (; ; ) {
             SQLParameter parameter = new SQLParameter();
             parameter.setParent(parent);
@@ -2039,13 +2044,16 @@ public class OracleStatementParser extends SQLStatementParser {
                         int len = lenExpr.getNumber().intValue();
                         dataType = new SQLDataTypeImpl(typeName, len);
                         accept(Token.RPAREN);
+                    } else {
+                        String typeName = "TABLE OF " + sqlName.toString();
+                        dataType = new SQLDataTypeImpl(typeName);
+                    }
 
-                        if (lexer.token() == Token.INDEX) {
-                            lexer.nextToken();
-                            accept(Token.BY);
-                            SQLExpr indexBy = this.exprParser.primary();
-                            ((SQLDataTypeImpl) dataType).setIndexBy(indexBy);
-                        }
+                    if (lexer.token() == Token.INDEX) {
+                        lexer.nextToken();
+                        accept(Token.BY);
+                        SQLExpr indexBy = this.exprParser.primary();
+                        ((SQLDataTypeImpl) dataType).setIndexBy(indexBy);
                     }
                     dataType.setDbType(dbType);
                 } else if (lexer.identifierEquals("VARRAY")) {

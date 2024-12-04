@@ -406,6 +406,7 @@ public final class FnvHash {
         long COLLATE = fnv1a_64_lower("COLLATE");
         long BOOLEAN = fnv1a_64_lower("BOOLEAN");
         long SMALLINT = fnv1a_64_lower("SMALLINT");
+        long MEDIUMINT = fnv1a_64_lower("MEDIUMINT");
         long SHORT = fnv1a_64_lower("SHORT");
         long TINY = fnv1a_64_lower("TINY");
         long TINYINT = fnv1a_64_lower("TINYINT");
@@ -1146,5 +1147,6 @@ public final class FnvHash {
         long PRIMARY = fnv1a_64_lower("PRIMARY");
         long THAN = fnv1a_64_lower("THAN");
         long PROPERTIES = fnv1a_64_lower("PROPERTIES");
+        long SINGLE = fnv1a_64_lower("SINGLE");
     }
 }

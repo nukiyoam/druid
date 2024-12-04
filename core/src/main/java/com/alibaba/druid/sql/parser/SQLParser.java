@@ -480,7 +480,15 @@ public class SQLParser {
             lexer.nextToken();
         } else if (lexer.token == Token.IDENTIFIER) {
             alias = lexer.stringVal();
-            lexer.nextToken();
+            boolean skip = false;
+            if (dbType == DbType.hive || dbType == DbType.odps) {
+                skip = "TBLPROPERTIES".equalsIgnoreCase(alias);
+            }
+            if (skip) {
+                alias = null;
+            } else {
+                lexer.nextToken();
+            }
         } else if (lexer.token == Token.LITERAL_CHARS) {
             alias = "'" + lexer.stringVal() + "'";
             lexer.nextToken();
@@ -776,7 +784,7 @@ public class SQLParser {
                     return alias;
                 case GROUP:
                 case ORDER:
-                    if (dbType == DbType.odps || dbType == DbType.hive) {
+                    {
                         Lexer.SavePoint mark = lexer.mark();
                         alias = lexer.stringVal();
                         lexer.nextToken();
@@ -784,7 +792,6 @@ public class SQLParser {
                             lexer.reset(mark);
                             alias = null;
                         }
-                        break;
                     }
                     break;
                 case QUES:
