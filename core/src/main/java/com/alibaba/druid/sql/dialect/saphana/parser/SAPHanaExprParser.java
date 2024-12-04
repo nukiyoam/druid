@@ -13,7 +13,6 @@
 package com.alibaba.druid.sql.dialect.saphana.parser;
 
 import com.alibaba.druid.DbType;
-import com.alibaba.druid.sql.SQLUtils;
 import com.alibaba.druid.sql.ast.SQLExpr;
 import com.alibaba.druid.sql.ast.expr.SQLIdentifierExpr;
 import com.alibaba.druid.sql.ast.statement.SQLCreateTableStatement;
@@ -128,7 +127,4 @@ public class SAPHanaExprParser extends SQLExprParser {
         }
         return sqlExpr;
     }
-
 }
-
-
